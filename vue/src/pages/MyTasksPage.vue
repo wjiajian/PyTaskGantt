@@ -1,5 +1,9 @@
 <template>
   <AppShell>
+    <template #header-meta>
+      <span class="header-sync-cutoff">影刀数据截至 {{ syncCutoffText }}</span>
+    </template>
+
     <section class="page-heading my-tasks-heading">
       <div>
         <h1>我的任务</h1>
@@ -33,7 +37,6 @@
         <n-select v-model:value="selectedTags" :options="tagOptions" multiple clearable placeholder="标签" />
         <n-select v-model:value="selectedStatuses" :options="statusOptions" multiple clearable placeholder="运行状态" />
         <n-select v-model:value="sort" :options="sortOptions" />
-        <span class="data-cutoff">影刀数据截至 {{ syncCutoffText }}</span>
       </div>
     </n-card>
 
@@ -150,7 +153,7 @@ const refreshSeconds = Math.max(5, Number(auth.uiRefreshSeconds || 10))
 let refreshTimer = null
 
 const syncCutoffText = computed(() => {
-  const cutoff = summarizeSyncCutoff(store.tasks.value)
+  const cutoff = store.state.syncCutoff || summarizeSyncCutoff(store.tasks.value)
   if (!cutoff.boundCount) return '无已绑定任务'
   if (!cutoff.timestamp) return '尚未成功同步'
   return `${formatDateTime(cutoff.timestamp)}${cutoff.incomplete ? '（部分任务尚未同步）' : ''}`

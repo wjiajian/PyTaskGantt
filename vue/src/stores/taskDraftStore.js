@@ -64,6 +64,7 @@ export function createTaskDraftStore(loader, saver = saveTaskMutations) {
     saving: false,
     error: '',
     serverTime: null,
+    syncCutoff: null,
   })
   let generation = 0
   let loadRequestId = 0
@@ -76,17 +77,18 @@ export function createTaskDraftStore(loader, saver = saveTaskMutations) {
   const hasUnsaved = computed(() => Object.keys(state.mutations).length > 0)
   const mutationList = computed(() => Object.values(state.mutations).map(({ _deleted, ...mutation }) => mutation))
 
-  function hydrate(tasks, serverTime = null) {
+  function hydrate(tasks, serverTime = null, syncCutoff = null) {
     const normalized = tasks.map(row => normalizeTask(row))
     state.tasks = normalized.map(cloneTask)
     state.savedTasks = Object.fromEntries(normalized.map(task => [taskKey(task.id), cloneTask(task)]))
     state.mutations = {}
     state.serverTime = serverTime
+    state.syncCutoff = syncCutoff
     state.loaded = true
     state.error = ''
   }
 
-  function mergeServer(tasks, serverTime) {
+  function mergeServer(tasks, serverTime, syncCutoff) {
     const serverRows = tasks.map(row => normalizeTask(row))
     const serverMap = new Map(serverRows.map(task => [taskKey(task.id), task]))
     const next = []
@@ -124,6 +126,7 @@ export function createTaskDraftStore(loader, saver = saveTaskMutations) {
     }
     state.tasks = next
     state.serverTime = serverTime
+    state.syncCutoff = syncCutoff
     state.loaded = true
     state.error = ''
   }
@@ -148,8 +151,8 @@ export function createTaskDraftStore(loader, saver = saveTaskMutations) {
     try {
       const result = await loader()
       if (!isCurrentRequest(requestGeneration, requestId, 'load')) return visibleTasks.value
-      if (preserveDraft && hasUnsaved.value) mergeServer(result.tasks, result.serverTime)
-      else hydrate(result.tasks, result.serverTime)
+      if (preserveDraft && hasUnsaved.value) mergeServer(result.tasks, result.serverTime, result.syncCutoff)
+      else hydrate(result.tasks, result.serverTime, result.syncCutoff)
       return visibleTasks.value
     } catch (error) {
       if (!isCurrentRequest(requestGeneration, requestId, 'load')) return visibleTasks.value
@@ -234,7 +237,7 @@ export function createTaskDraftStore(loader, saver = saveTaskMutations) {
     if (state.saving) return false
     loadRequestId += 1
     const rows = Object.values(state.savedTasks).map(cloneTask)
-    hydrate(rows, state.serverTime)
+    hydrate(rows, state.serverTime, state.syncCutoff)
     return true
   }
 
@@ -378,6 +381,7 @@ export function createTaskDraftStore(loader, saver = saveTaskMutations) {
     state.saving = false
     state.error = ''
     state.serverTime = null
+    state.syncCutoff = null
   }
 
   return {

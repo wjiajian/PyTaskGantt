@@ -76,7 +76,16 @@ const pageState = vi.hoisted(() => ({
 
 vi.mock('../src/stores/taskDraftStore.js', () => ({
   myTaskStore: {
-    state: { loading: false, saving: false, error: '' },
+    state: {
+      loading: false,
+      saving: false,
+      error: '',
+      syncCutoff: {
+        boundCount: 79,
+        timestamp: '2026-07-22T04:00:00.000Z',
+        incomplete: true,
+      },
+    },
     tasks: { value: pageState.tasks },
     hasUnsaved: { value: false },
     mutationList: { value: [] },
@@ -103,7 +112,7 @@ vi.mock('../src/services/taskService.js', () => ({
 }))
 
 vi.mock('../src/components/AppShell.vue', () => ({
-  default: { name: 'AppShell', template: '<main><slot /></main>' },
+  default: { name: 'AppShell', template: '<main><header><slot name="header-meta" /></header><slot /></main>' },
 }))
 vi.mock('../src/components/ExecutionHistoryDialog.vue', () => ({
   default: { name: 'ExecutionHistoryDialog', template: '<div />' },

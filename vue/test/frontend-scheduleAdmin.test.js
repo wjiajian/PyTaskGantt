@@ -53,7 +53,7 @@ vi.mock('../src/stores/taskDraftStore.js', () => ({
 }))
 
 vi.mock('../src/components/AppShell.vue', () => ({
-  default: { name: 'AppShell', template: '<main><slot /></main>' },
+  default: { name: 'AppShell', template: '<main><header><slot name="header-meta" /></header><slot /></main>' },
 }))
 vi.mock('../src/components/ExecutionHistoryDialog.vue', () => ({
   default: { name: 'ExecutionHistoryDialog', template: '<div />' },
@@ -120,6 +120,9 @@ describe('SchedulePage administrator recovery', () => {
   it('管理员看到恢复入口并提交目标用户、计划和乐观锁版本', async () => {
     const wrapper = mount(SchedulePage)
     await flushPromises()
+    expect(wrapper.text()).not.toContain('全员任务沙盘')
+    expect(wrapper.text()).not.toContain('所有登录用户均可查看')
+    expect(wrapper.text()).toContain('影刀数据截至 无已绑定任务')
     expect(wrapper.findComponent({ name: 'TaskList' }).props('canRecover')).toBe(true)
 
     await wrapper.get('.recover-entry').trigger('click')

@@ -63,6 +63,24 @@ test('管理员任务列表把全部正常有效任务标记为可编辑', async
   assert.deepEqual(db.calls[0].params, ['5', true]);
 });
 
+test('global sync cutoff summarizes every active bound task independently of owner', async () => {
+  const db = queueDb([{ rows: [{
+    bound_count: 79,
+    incomplete_count: 2,
+    cutoff_at: new Date('2026-08-13T09:21:23.000Z'),
+  }] }]);
+  const repository = createTasksRepository(db);
+  const result = await repository.getSyncCutoff();
+
+  assert.deepEqual(result, {
+    boundCount: 79,
+    timestamp: '2026-08-13T09:21:23.000Z',
+    incomplete: true,
+  });
+  assert.match(db.calls[0].sql, /owner_user_id IS NOT NULL/);
+  assert.match(db.calls[0].sql, /MIN\(last_synced_at\)/);
+});
+
 test('new task and its initial binding interval are inserted in one transaction', async () => {
   const client = queueDb([
     { rows: [] },

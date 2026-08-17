@@ -35,9 +35,15 @@ export function normalizeTask(raw = {}) {
 
 function normalizeTaskPayload(payload) {
   const rows = Array.isArray(payload) ? payload : payload?.tasks || []
+  const rawSyncCutoff = Array.isArray(payload) ? null : payload?.sync_cutoff
   return {
     tasks: rows.map(normalizeTask),
     serverTime: payload?.server_time || null,
+    syncCutoff: rawSyncCutoff ? {
+      boundCount: Number(rawSyncCutoff.bound_count || 0),
+      timestamp: rawSyncCutoff.timestamp || null,
+      incomplete: Boolean(rawSyncCutoff.incomplete),
+    } : null,
   }
 }
 

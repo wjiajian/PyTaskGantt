@@ -489,6 +489,21 @@ body,
   gap: 8px;
 }
 
+.header-meta {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-sync-cutoff {
+  max-width: min(420px, 32vw);
+  overflow: hidden;
+  color: rgba(0, 0, 0, .45);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .header-user-name {
   max-width: 140px;
   overflow: hidden;
@@ -530,14 +545,6 @@ body,
   color: rgba(0, 0, 0, .55);
 }
 
-.page-heading-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: rgba(0, 0, 0, .45);
-  font-size: 12px;
-}
-
 .page-alert {
   max-width: 1680px;
   margin: 0 auto 16px;
@@ -545,7 +552,6 @@ body,
 
 .schedule-layout {
   width: 100%;
-  max-width: 1680px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 304px;
@@ -947,15 +953,9 @@ body,
 
 .my-task-filters {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, .8fr) minmax(180px, .8fr) 150px auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, .8fr) minmax(180px, .8fr) 150px;
   align-items: center;
   gap: 10px;
-}
-
-.data-cutoff {
-  color: rgba(0, 0, 0, .45);
-  font-size: 12px;
-  white-space: nowrap;
 }
 
 .dialog-description {
@@ -1004,9 +1004,6 @@ body,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .data-cutoff {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (max-width: 700px) {
@@ -1023,6 +1020,17 @@ body,
     display: none;
   }
 
+  .header-user {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-content: flex-end;
+    padding-bottom: 8px;
+  }
+
+  .header-sync-cutoff {
+    max-width: none;
+  }
+
   .app-nav a {
     flex: 1;
     justify-content: center;
@@ -1035,7 +1043,6 @@ body,
     flex-direction: column;
   }
 
-  .page-heading-meta,
   .my-tasks-heading > .n-space {
     width: 100%;
     flex-wrap: wrap !important;

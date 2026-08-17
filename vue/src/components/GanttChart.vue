@@ -18,12 +18,22 @@
         </n-button>
       </n-space>
     </template>
-    <div ref="containerRef" class="gantt-container"></div>
-    <n-empty
-      v-if="!tasks.length"
-      description="暂无符合条件的任务"
-      style="padding: 40px 0;"
-    />
+    <div
+      ref="viewportRef"
+      class="gantt-viewport"
+      :style="{ height: `${ganttHeight}px` }"
+    >
+      <div
+        ref="containerRef"
+        class="gantt-container"
+        :class="{ 'gantt-container-empty': !tasks.length }"
+      ></div>
+      <n-empty
+        v-if="!tasks.length"
+        class="gantt-empty"
+        description="暂无符合条件的任务"
+      />
+    </div>
     <!-- 拖拽时的浮动 tooltip（teleport 到 body，避免被 card overflow 截断） -->
     <Teleport to="body">
       <div
@@ -71,10 +81,16 @@ const props = defineProps({
 
 const emit = defineEmits(['task-click', 'task-update'])
 
+const viewportRef = ref(null)
 const containerRef = ref(null)
+const ganttHeight = ref(320)
 let timeline = null
 let itemsDataset = null
 let groupsDataset = null
+let containerResizeObserver = null
+let resizeRaf = null
+const MIN_GANTT_HEIGHT = 320
+const VIEWPORT_BOTTOM_GAP = 36
 // 拖拽自身触发的 task-update 会导致父组件 allTasks 变化 → 触发本组件 watch。
 // 我们已在 onMove 里同步了 dataset，无需再 updateData，这里用一次性标志位跳过。
 let suppressNextUpdate = false
@@ -232,6 +248,39 @@ function hideTip() {
   dragTip.value.visible = false
 }
 
+// 甘特图始终填满当前视口剩余高度。使用容器的真实 top 计算，而不是写死头部高度，
+// 因而导航换行、侧栏移动到上方以及浏览器缩放时都能得到正确高度。
+function resizeTimelineToViewport() {
+  if (!viewportRef.value) return
+  if (resizeRaf != null) cancelAnimationFrame(resizeRaf)
+  resizeRaf = requestAnimationFrame(() => {
+    resizeRaf = null
+    if (!viewportRef.value) return
+    const viewportHeight = window.visualViewport?.height || window.innerHeight
+    const viewportTop = viewportRef.value.getBoundingClientRect().top
+    const maxHeight = Math.max(
+      MIN_GANTT_HEIGHT,
+      Math.floor(viewportHeight - VIEWPORT_BOTTOM_GAP * 2),
+    )
+    const availableHeight = Math.floor(
+      viewportHeight - viewportTop - VIEWPORT_BOTTOM_GAP,
+    )
+    const nextHeight = Math.min(
+      maxHeight,
+      Math.max(MIN_GANTT_HEIGHT, availableHeight),
+    )
+    if (ganttHeight.value !== nextHeight) ganttHeight.value = nextHeight
+    nextTick(() => timeline?.redraw?.())
+  })
+}
+
+function resizeTimelineOnScroll() {
+  const isStackedLayout = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(max-width: 1100px)').matches
+    : window.innerWidth <= 1100
+  if (isStackedLayout) resizeTimelineToViewport()
+}
+
 // 把 bot 名称转为合法的 CSS class 名（处理中文）
 function botClassName(bot) {
   // 用 base64 (URL-safe) 保证唯一性 + 合法字符
@@ -329,8 +378,7 @@ function createTimeline() {
     margin: { item: { vertical: 4, horizontal: 0 }, axis: 8 },
     verticalScroll: true,
     zoomKey: 'ctrlKey', // 防止误缩放，按住 Ctrl 才能滚轮缩放
-    maxHeight: '560px',
-    minHeight: '320px',
+    height: '100%',
     groupHeightMode: 'fixed',
     groupOrder: 'order',
     min: new Date(`${DUMMY_DATE}T00:00:00`),
@@ -484,12 +532,25 @@ watch(
       return
     }
     updateData()
+    timeline.redraw?.()
   },
   { deep: true }
 )
 
 onMounted(() => {
+  resizeTimelineToViewport()
   createTimeline()
+  window.addEventListener('resize', resizeTimelineToViewport, { passive: true })
+  window.addEventListener('scroll', resizeTimelineOnScroll, { passive: true })
+  window.visualViewport?.addEventListener('resize', resizeTimelineToViewport, { passive: true })
+  if (typeof ResizeObserver !== 'undefined') {
+    containerResizeObserver = new ResizeObserver(() => {
+      resizeTimelineToViewport()
+    })
+    containerResizeObserver.observe(viewportRef.value)
+    const appContent = viewportRef.value.closest('.app-content')
+    if (appContent) containerResizeObserver.observe(appContent)
+  }
   // pointermove 是关键：拖拽中 hammer.js 会 setPointerCapture，mousemove 被吞，但 pointermove 仍会派发
   // capture: true —— 在 vis-timeline 内部之前先收到事件
   window.addEventListener('pointermove', onWindowMouseMove, { passive: true, capture: true })
@@ -512,6 +573,13 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointerup', hideDragTip, { capture: true })
   window.removeEventListener('mouseup', hideDragTip, { capture: true })
   window.removeEventListener('blur', hideDragTip)
+  window.removeEventListener('resize', resizeTimelineToViewport)
+  window.removeEventListener('scroll', resizeTimelineOnScroll)
+  window.visualViewport?.removeEventListener('resize', resizeTimelineToViewport)
+  containerResizeObserver?.disconnect()
+  containerResizeObserver = null
+  if (resizeRaf != null) cancelAnimationFrame(resizeRaf)
+  resizeRaf = null
   stopAutoScroll()
   if (timeline) {
     timeline.destroy()
@@ -521,9 +589,28 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.gantt-container {
+.gantt-viewport {
+  position: relative;
   width: 100%;
   min-height: 320px;
+}
+
+.gantt-container {
+  width: 100%;
+  height: 100%;
+}
+
+.gantt-container-empty {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gantt-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
 

@@ -23,6 +23,11 @@ function buildApp(overrides = {}) {
     tasks: {
       listAll: async userId => [{ id: '10', task: '测试任务', can_edit: userId === '1' }],
       listMine: async userId => userId === '1' ? [{ id: '10', task: '测试任务' }] : [],
+      getSyncCutoff: async () => ({
+        boundCount: 79,
+        timestamp: '2026-08-13T09:21:23.000Z',
+        incomplete: false,
+      }),
       listExecutions: async () => [],
       listExecutionsPage: async (_taskId, pagination) => ({
         executions: [],
@@ -121,6 +126,11 @@ describe('Express 会话与权限边界', () => {
     expect(all.body.tasks[0].can_edit).toBe(true);
     const mine = await agent.get('/api/my/tasks').expect(200);
     expect(mine.body.tasks).toHaveLength(1);
+    expect(mine.body.sync_cutoff).toEqual({
+      bound_count: 79,
+      timestamp: '2026-08-13T09:21:23.000Z',
+      incomplete: false,
+    });
     await agent.post('/api/auth/logout').expect(200);
     await agent.get('/api/tasks').expect(401);
   });

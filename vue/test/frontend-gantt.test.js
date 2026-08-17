@@ -52,6 +52,9 @@ vi.mock('vis-timeline/standalone', () => ({
 
     destroy() {}
     fit() {}
+    redraw() {
+      this.redrawCalls = (this.redrawCalls || 0) + 1
+    }
     setWindow() {}
     getWindow() {
       return {
@@ -106,6 +109,35 @@ describe('GanttChart ownership boundary', () => {
 
     const timeline = timelineState.instances.at(-1)
     expect(timeline).toBeTruthy()
+    expect(timeline.options.height).toBe('100%')
+    expect(timeline.options.maxHeight).toBeUndefined()
+
+    const ganttViewport = wrapper.get('.gantt-viewport').element
+    const originalInnerHeight = window.innerHeight
+    const originalInnerWidth = window.innerWidth
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1000 })
+    let viewportTop = 1000
+    ganttViewport.getBoundingClientRect = () => ({ top: viewportTop })
+    window.dispatchEvent(new Event('resize'))
+    await new Promise(resolve => window.requestAnimationFrame(resolve))
+    await nextTick()
+    expect(ganttViewport.style.height).toBe('320px')
+
+    viewportTop = 150
+    window.dispatchEvent(new Event('scroll'))
+    await new Promise(resolve => window.requestAnimationFrame(resolve))
+    await nextTick()
+    expect(ganttViewport.style.height).toBe('714px')
+
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 460 })
+    window.dispatchEvent(new Event('resize'))
+    await new Promise(resolve => window.requestAnimationFrame(resolve))
+    await nextTick()
+    expect(ganttViewport.style.height).toBe('320px')
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
+
     expect(timeline.items.get('1').editable).toMatchObject({ updateTime: true, updateGroup: false })
     expect(timeline.items.get('2').editable).toBe(false)
     expect(timeline.items.get('2').className).toContain('task-locked')
@@ -129,6 +161,16 @@ describe('GanttChart ownership boundary', () => {
     expect(wrapper.emitted('task-update')).toEqual([[
       { id: '1', start: '10:15:00', finish: '11:05:00' },
     ]])
+
+    await wrapper.setProps({ tasks: [] })
+    await nextTick()
+    expect(wrapper.get('.gantt-container').classes()).toContain('gantt-container-empty')
+    expect(wrapper.get('.gantt-empty').element.parentElement).toBe(ganttViewport)
+
+    await wrapper.setProps({ tasks: [editable] })
+    await nextTick()
+    expect(wrapper.get('.gantt-container').classes()).not.toContain('gantt-container-empty')
+    expect(timeline.redrawCalls).toBeGreaterThan(0)
 
     wrapper.unmount()
   })

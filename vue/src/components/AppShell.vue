@@ -21,6 +21,9 @@
       </nav>
 
       <div class="header-user">
+        <div v-if="$slots['header-meta']" class="header-meta">
+          <slot name="header-meta" />
+        </div>
         <n-avatar round size="small" :src="auth.user?.avatar_url || undefined">
           {{ initials }}
         </n-avatar>

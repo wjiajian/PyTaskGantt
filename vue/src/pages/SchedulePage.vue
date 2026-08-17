@@ -1,17 +1,8 @@
 <template>
   <AppShell>
-    <section class="page-heading">
-      <div>
-        <h1>全员任务沙盘</h1>
-        <p>所有登录用户均可查看；任务所有者与管理员可维护有效任务。</p>
-      </div>
-      <div class="page-heading-meta">
-        <n-tag v-if="store.hasUnsaved.value" type="warning" :bordered="false">
-          {{ store.mutationList.value.length }} 项待保存
-        </n-tag>
-        <span>影刀数据截至 {{ syncCutoffText }}</span>
-      </div>
-    </section>
+    <template #header-meta>
+      <span class="header-sync-cutoff">影刀数据截至 {{ syncCutoffText }}</span>
+    </template>
 
     <n-alert v-if="store.state.error" type="error" :show-icon="true" class="page-alert">
       {{ store.state.error }}
@@ -125,7 +116,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { NAlert, NButton, NModal, NSelect, NSpace, NSpin, NTag, useDialog, useMessage } from 'naive-ui'
+import { NAlert, NButton, NModal, NSelect, NSpace, NSpin, useDialog, useMessage } from 'naive-ui'
 import AppShell from '../components/AppShell.vue'
 import ExecutionHistoryDialog from '../components/ExecutionHistoryDialog.vue'
 import FilterPanel from '../components/FilterPanel.vue'
@@ -172,7 +163,7 @@ const refreshSeconds = Math.max(5, Number(auth.uiRefreshSeconds || 10))
 let refreshTimer = null
 
 const syncCutoffText = computed(() => {
-  const cutoff = summarizeSyncCutoff(store.tasks.value)
+  const cutoff = store.state.syncCutoff || summarizeSyncCutoff(store.tasks.value)
   if (!cutoff.boundCount) return '无已绑定任务'
   if (!cutoff.timestamp) return '尚未成功同步'
   return `${formatDateTime(cutoff.timestamp)}${cutoff.incomplete ? '（部分任务尚未同步）' : ''}`

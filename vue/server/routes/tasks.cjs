@@ -44,6 +44,21 @@ function parseExecutionPagination(query = {}) {
   });
 }
 
+function presentSyncCutoff(value = {}) {
+  return {
+    bound_count: Number(value.boundCount || 0),
+    timestamp: value.timestamp || null,
+    incomplete: Boolean(value.incomplete),
+  };
+}
+
+async function readSyncCutoff(tasksRepository) {
+  if (typeof tasksRepository.getSyncCutoff !== 'function') {
+    return presentSyncCutoff();
+  }
+  return presentSyncCutoff(await tasksRepository.getSyncCutoff());
+}
+
 function createTasksRouter({ usersRepository, tasksRepository, taskMutationService, taskActionService, syncCoordinator }) {
   const router = express.Router();
 
@@ -52,10 +67,17 @@ function createTasksRouter({ usersRepository, tasksRepository, taskMutationServi
   }));
 
   router.get('/tasks', asyncHandler(async (req, res) => {
-    const tasks = await tasksRepository.listAll(req.userId, {
-      currentUserIsAdmin: req.actor.isAdmin,
+    const [tasks, syncCutoff] = await Promise.all([
+      tasksRepository.listAll(req.userId, {
+        currentUserIsAdmin: req.actor.isAdmin,
+      }),
+      readSyncCutoff(tasksRepository),
+    ]);
+    res.json({
+      tasks: tasks.map(presentTask),
+      sync_cutoff: syncCutoff,
+      server_time: new Date().toISOString(),
     });
-    res.json({ tasks: tasks.map(presentTask), server_time: new Date().toISOString() });
   }));
 
   router.get('/my/tasks', asyncHandler(async (req, res) => {
@@ -67,8 +89,15 @@ function createTasksRouter({ usersRepository, tasksRepository, taskMutationServi
       normalizedStatus: req.query.normalized_status || '',
       sort: req.query.sort || 'updated',
     };
-    const tasks = await tasksRepository.listMine(req.userId, filters);
-    res.json({ tasks: tasks.map(presentTask), server_time: new Date().toISOString() });
+    const [tasks, syncCutoff] = await Promise.all([
+      tasksRepository.listMine(req.userId, filters),
+      readSyncCutoff(tasksRepository),
+    ]);
+    res.json({
+      tasks: tasks.map(presentTask),
+      sync_cutoff: syncCutoff,
+      server_time: new Date().toISOString(),
+    });
   }));
 
   router.post('/tasks/batch', asyncHandler(async (req, res) => {

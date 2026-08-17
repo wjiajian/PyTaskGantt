@@ -107,6 +107,27 @@ function createTasksRepository(db) {
     return rows.map(mapTaskRow);
   }
 
+  async function getSyncCutoff(options = {}) {
+    const executor = resolveExecutor(options, db);
+    const { rows } = await executor.query(
+      `SELECT
+         COUNT(*)::integer AS bound_count,
+         COUNT(*) FILTER (WHERE last_synced_at IS NULL)::integer AS incomplete_count,
+         MIN(last_synced_at) AS cutoff_at
+       FROM public.rpa_tasks
+       WHERE deleted_at IS NULL
+         AND owner_user_id IS NOT NULL
+         AND schedule_uuid IS NOT NULL
+         AND schedule_bound_at IS NOT NULL`
+    );
+    const row = rows[0] || {};
+    return {
+      boundCount: Number(row.bound_count || 0),
+      timestamp: toIsoString(row.cutoff_at),
+      incomplete: Number(row.incomplete_count || 0) > 0,
+    };
+  }
+
   async function findById(id, options = {}) {
     const executor = resolveExecutor(options, db);
     const deletedClause = options.includeDeleted ? '' : 'AND deleted_at IS NULL';
@@ -443,6 +464,7 @@ function createTasksRepository(db) {
     listAll: (currentUserId, options = {}) => listVisibleTasks({ currentUserId, ...options }),
     listOwnedTasks,
     listMine: listOwnedTasks,
+    getSyncCutoff,
     findById,
     lockById,
     createTask,
