@@ -234,7 +234,7 @@ function stopAutoScroll() {
 function showTipFromTask(task, startStr, finishStr) {
   dragTip.value.task = task.task
   dragTip.value.bot = task.bot
-  dragTip.value.color = getBotColor(task.bot)
+  dragTip.value.color = taskColor(task)
   dragTip.value.start = startStr
   dragTip.value.finish = finishStr
   dragTip.value.duration = formatDuration(startStr, finishStr)
@@ -246,6 +246,10 @@ function showTipFromTask(task, startStr, finishStr) {
 
 function hideTip() {
   dragTip.value.visible = false
+}
+
+function taskColor(task) {
+  return task?.color || getBotColor(task?.bot)
 }
 
 // 甘特图始终填满当前视口剩余高度。使用容器的真实 top 计算，而不是写死头部高度，
@@ -288,15 +292,14 @@ function botClassName(bot) {
   return `bot-${safe}`
 }
 
-const uniqueBots = computed(() => {
-  return [...new Set(props.tasks.map(t => t.bot))]
+const botColors = computed(() => {
+  return new Map(props.tasks.map(task => [task.bot, taskColor(task)]))
 })
 
 // 动态生成每个 bot 的颜色 CSS
 const dynamicStyles = computed(() => {
-  return uniqueBots.value
-    .map(bot => {
-      const color = getBotColor(bot)
+  return [...botColors.value.entries()]
+    .map(([bot, color]) => {
       const cls = botClassName(bot)
       return `
 .vis-item.${cls} {
@@ -346,7 +349,7 @@ function buildGroups(tasks) {
     // 左侧轨道标签：色块 + 任务名 + 机器人名
     content: `
       <div style="display:flex; align-items:center; gap:6px; padding-right:8px;">
-        <span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:${getBotColor(t.bot)}; flex-shrink:0;"></span>
+        <span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:${taskColor(t)}; flex-shrink:0;"></span>
         <span style="font-size:12px; font-weight:500; color:rgba(0,0,0,0.88); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(t.task)} · ${escapeHtml(t.bot)} · ${escapeHtml(t.owner?.display_name || '历史任务')}">${t.can_edit ? '' : '🔒 '}${escapeHtml(t.task)}</span>
       </div>
     `,

@@ -1,5 +1,3 @@
-import { BOT_PALETTE } from '../theme.js'
-
 export const DUMMY_DATE = '2025-01-01'
 
 function timeToMinutes(timeStr) {
@@ -40,20 +38,54 @@ export function parseTimeToDate(startTime, finishTime) {
 }
 
 function hashText(value) {
-  let hash = 0
-  for (const char of String(value || '')) hash = ((hash << 5) - hash + char.codePointAt(0)) | 0
-  return Math.abs(hash)
+  const normalized = String(value || '').trim().normalize('NFKC')
+  let hash = 0x811c9dc5
+  for (const char of normalized) {
+    hash ^= char.codePointAt(0)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  // FNV-1a 对相邻名称的末尾字符仍可能产生接近的值，再做一次 avalanche，
+  // 避免“机器人1 / 机器人2”这类名称落到肉眼接近的连续色相。
+  hash ^= hash >>> 16
+  hash = Math.imul(hash, 0x85ebca6b)
+  hash ^= hash >>> 13
+  hash = Math.imul(hash, 0xc2b2ae35)
+  hash ^= hash >>> 16
+  return hash >>> 0
 }
 
 export function getBotColor(botName) {
-  return BOT_PALETTE[hashText(botName) % BOT_PALETTE.length]
+  const hash = hashText(botName)
+  const hue = hash % 360
+  const saturation = 62 + ((hash >>> 9) % 18)
+  const lightness = 38 + ((hash >>> 17) % 8)
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
 }
 
-export function decorateTask(task) {
+export function createBotColorMap(botNames = []) {
+  const names = [...new Set(botNames
+    .map(name => String(name || '').trim().normalize('NFKC'))
+    .filter(Boolean))]
+    .sort((left, right) => hashText(left) - hashText(right) || left.localeCompare(right, 'zh-CN'))
+  if (!names.length) return new Map()
+
+  // 按当前完整机器人集合等距分布色相，避免有限调色板取余造成重复；
+  // 筛选前生成映射，筛选任务时颜色不会跟着变化。
+  const rotation = hashText(names.join('\u0000')) % 360
+  return new Map(names.map((name, index) => {
+    const hash = hashText(name)
+    const hue = Math.round((rotation + (index * 360) / names.length) % 360)
+    const saturation = 64 + ((hash >>> 9) % 12)
+    const lightness = 39 + ((hash >>> 17) % 5)
+    return [name, `hsl(${hue}, ${saturation}%, ${lightness}%)`]
+  }))
+}
+
+export function decorateTask(task, color = getBotColor(task.bot)) {
   return {
     ...task,
     duration: formatDuration(task.start, task.finish),
-    color: getBotColor(task.bot),
+    color,
     crossDay: isCrossDay(task.start, task.finish),
   }
 }
@@ -64,7 +96,8 @@ export function filterTasks(tasks, {
   selectedOwners = [],
   sortBy = 'bot',
 } = {}) {
-  let rows = tasks.map(decorateTask)
+  const botColors = createBotColorMap(tasks.map(task => task.bot))
+  let rows = tasks.map(task => decorateTask(task, botColors.get(String(task.bot || '').trim().normalize('NFKC'))))
   const term = searchTerm.trim().toLocaleLowerCase('zh-CN')
   if (term) rows = rows.filter(task => task.task.toLocaleLowerCase('zh-CN').includes(term))
   if (selectedBots.length) rows = rows.filter(task => selectedBots.includes(task.bot))

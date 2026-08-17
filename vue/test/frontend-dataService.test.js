@@ -1,14 +1,35 @@
 import { describe, expect, it } from 'vitest'
 import {
   escapeHtml,
+  createBotColorMap,
   filterTasks,
   formatDuration,
+  getBotColor,
   isCrossDay,
   parseTimeToDate,
   summarizeSyncCutoff,
 } from '../src/services/dataService.js'
 
 describe('frontend data utilities', () => {
+  it('为不同机器人生成稳定且不受八色调色板限制的颜色', () => {
+    expect(getBotColor('机器人1')).toBe(getBotColor('机器人1'))
+    expect(getBotColor('机器人1')).not.toBe(getBotColor('机器人10'))
+
+    const names = Array.from({ length: 10 }, (_, index) => `机器人${index}`)
+    const colors = createBotColorMap(names)
+    expect(new Set(colors.values()).size).toBe(names.length)
+
+    const rows = names.map((bot, index) => ({
+      id: String(index), task: `任务${index}`, start: '09:00:00', finish: '10:00:00', bot,
+    }))
+    const allRows = filterTasks(rows)
+    const filteredRows = filterTasks(rows, { selectedBots: ['机器人1', '机器人8'] })
+    expect(filteredRows.map(row => row.color)).toEqual([
+      allRows.find(row => row.bot === '机器人1').color,
+      allRows.find(row => row.bot === '机器人8').color,
+    ])
+  })
+
   it('保留跨天任务语义', () => {
     expect(isCrossDay('23:30:00', '01:15:00')).toBe(true)
     expect(formatDuration('23:30:00', '01:15:00')).toBe('1h 45m')

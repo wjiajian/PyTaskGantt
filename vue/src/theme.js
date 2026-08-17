@@ -114,18 +114,6 @@ export const antdLikeTheme = {
   },
 }
 
-// AntD 12 色板，用于机器人着色（取前 8 色）
-export const BOT_PALETTE = [
-  '#1677ff', // 拂晓蓝
-  '#13c2c2', // 明青
-  '#52c41a', // 极光绿
-  '#faad14', // 金盏花
-  '#eb2f96', // 法式洋红
-  '#722ed1', // 酱紫
-  '#fa541c', // 火山
-  '#2f54eb', // 极客蓝
-]
-
 // 浅色背景层级（用于精细化色卡）
 export const SURFACE = {
   body: '#fafafa',
