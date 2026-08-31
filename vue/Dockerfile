@@ -9,6 +9,7 @@ RUN npm ci
 # 复制源码并构建
 COPY vite.config.js ./
 COPY index.html ./
+COPY public/ ./public/
 COPY src/ ./src/
 RUN npm run build
 
