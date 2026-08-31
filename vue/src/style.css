@@ -849,34 +849,256 @@ body,
   overflow-wrap: anywhere;
 }
 
+/* === 登录页：左侧产品叙事 + 迷你甘特展示墙，右侧登录面板 === */
 .login-page {
   min-height: 100vh;
   display: grid;
-  place-items: center;
-  padding: 24px;
-  background: radial-gradient(circle at 20% 10%, #e6f4ff 0, transparent 34%), #f5f7fa;
+  grid-template-columns: minmax(0, 1.15fr) minmax(400px, 1fr);
+  background: #f5f7fa;
 }
 
-.login-card {
-  width: min(480px, 100%);
-  box-shadow: 0 18px 60px rgba(22, 55, 100, .13);
+.login-showcase {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 64px clamp(40px, 6vw, 96px);
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(22, 119, 255, .045) 1px, transparent 1px) 0 0 / 100% 44px,
+    linear-gradient(90deg, rgba(22, 119, 255, .045) 1px, transparent 1px) 0 0 / 44px 100%,
+    radial-gradient(circle at 15% 12%, #e6f4ff 0, transparent 42%),
+    #f5f7fa;
+}
+
+.login-showcase-inner {
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
 
 .login-brand {
   display: flex;
   align-items: center;
-  gap: 13px;
-  margin-bottom: 22px;
+  gap: 12px;
 }
 
-.login-brand h1 {
+.login-brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+}
+
+.login-brand-mark svg {
+  width: 20px;
+  height: 20px;
+}
+
+.login-brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: #1f2329;
+}
+
+.login-intro {
+  display: grid;
+  gap: 10px;
+}
+
+.login-headline {
   margin: 0;
-  font-size: 22px;
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #1f2329;
 }
 
-.login-brand p {
-  margin: 3px 0 0;
-  color: rgba(0, 0, 0, .5);
+.login-sub {
+  margin: 0;
+  font-size: 15px;
+  color: #646a73;
+}
+
+/* 迷你甘特展示墙 */
+.gantt-wall {
+  width: 100%;
+  padding: 18px 20px 22px;
+  background: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(31, 35, 41, .08);
+}
+
+.gantt-ruler {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 10px 96px;
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(0, 0, 0, .35);
+}
+
+.gantt-rows {
+  position: relative;
+  display: grid;
+  gap: 12px;
+}
+
+.gantt-row {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.gantt-label {
+  font-size: 11px;
+  color: #646a73;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gantt-track {
+  position: relative;
+  height: 14px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), #f0f1f3 calc(25% - 1px) 25%);
+}
+
+.gantt-bar {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gantt-bar.done {
+  background: linear-gradient(180deg, #4096ff, #1677ff);
+  box-shadow: 0 1px 3px rgba(22, 119, 255, .35);
+}
+
+.gantt-bar.done.dim {
+  opacity: .55;
+}
+
+.gantt-bar.running {
+  background: linear-gradient(180deg, #73d13d, #52c41a);
+  box-shadow: 0 1px 3px rgba(82, 196, 26, .4);
+}
+
+.gantt-bar.running::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .55) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: gantt-sheen 2.6s ease-in-out infinite;
+}
+
+.gantt-bar.queued {
+  border: 1.5px dashed #69b1ff;
+  background: rgba(22, 119, 255, .08);
+}
+
+.gantt-now-layer {
+  position: absolute;
+  inset: -5px 0 -5px 96px;
+  pointer-events: none;
+}
+
+.gantt-now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: #f53f3f;
+  border-radius: 1px;
+  animation: gantt-now 14s linear infinite;
+}
+
+.gantt-now::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -2.5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f53f3f;
+}
+
+@keyframes gantt-now {
+  from { left: 0; }
+  to { left: calc(100% - 2px); }
+}
+
+@keyframes gantt-sheen {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+
+.login-features {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.login-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.login-features li::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: #1677ff;
+}
+
+.login-features strong {
+  color: #1f2329;
+  font-weight: 600;
+}
+
+.login-features li > span {
+  color: #646a73;
+}
+
+/* 右侧登录面板 */
+.login-panel {
+  display: grid;
+  place-items: center;
+  padding: 40px 28px;
+  background: #fff;
+  border-left: 1px solid #eceef1;
+}
+
+.login-card {
+  width: min(360px, 100%);
+}
+
+.login-card-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #1f2329;
+}
+
+.login-card-sub {
+  margin: 6px 0 22px;
+  font-size: 13px;
+  color: #646a73;
 }
 
 .login-alert {
@@ -919,9 +1141,54 @@ body,
 
 .login-footnote {
   margin: 18px 0 0;
-  color: rgba(0, 0, 0, .4);
+  color: rgba(0, 0, 0, .45);
   font-size: 11px;
   text-align: center;
+}
+
+@media (max-width: 900px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-showcase {
+    padding: 40px 24px 28px;
+  }
+
+  .login-showcase-inner {
+    gap: 20px;
+  }
+
+  .login-headline {
+    font-size: 26px;
+  }
+
+  .login-panel {
+    padding: 8px 24px 40px;
+    border-left: none;
+  }
+
+  .login-card {
+    width: min(480px, 100%);
+  }
+}
+
+@media (max-width: 640px) {
+  .login-sub,
+  .login-features {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gantt-now {
+    animation: none;
+    left: 58%;
+  }
+
+  .gantt-bar.running::after {
+    animation: none;
+  }
 }
 
 .feishu-login-action {
