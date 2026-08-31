@@ -63,7 +63,10 @@
                 :disabled="switchingId === String(user.id)"
                 @click="chooseUser(user)"
               >
-                <n-avatar round :src="user.avatar_url || undefined">{{ user.display_name?.slice(0, 1) }}</n-avatar>
+                <n-avatar round :src="user.avatar_url || undefined">
+                  <template v-if="!user.avatar_url">{{ user.display_name?.slice(0, 1) }}</template>
+                  <template #fallback>{{ user.display_name?.slice(0, 1) }}</template>
+                </n-avatar>
                 <span><strong>{{ user.display_name }}</strong><small>用户 ID：{{ user.id }}</small></span>
                 <n-spin v-if="switchingId === String(user.id)" size="small" />
                 <span v-else aria-hidden="true">→</span>

@@ -25,7 +25,8 @@
           <slot name="header-meta" />
         </div>
         <n-avatar round size="small" :src="auth.user?.avatar_url || undefined">
-          {{ initials }}
+          <template v-if="!auth.user?.avatar_url">{{ initials }}</template>
+          <template #fallback>{{ initials }}</template>
         </n-avatar>
         <span class="header-user-name">{{ auth.user?.display_name || '当前用户' }}</span>
         <n-tag v-if="auth.user?.is_admin" size="small" type="error" :bordered="false">管理员</n-tag>
